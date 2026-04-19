@@ -1,6 +1,7 @@
 name: AI Defect Prediction — BiLSTM-MHA
 
 on:
+  push:
   pull_request:
     types: [opened, synchronize, reopened]
 
