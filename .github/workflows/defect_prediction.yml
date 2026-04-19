@@ -49,7 +49,7 @@ jobs:
         run: |
           python scripts/predict.py \
             --metrics metrics.json \
-            --output  prediction.json
+            --output prediction.json
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
@@ -60,13 +60,13 @@ jobs:
           script: |
             const fs = require('fs');
             const prediction = JSON.parse(fs.readFileSync('prediction.json', 'utf8'));
-            const metrics    = JSON.parse(fs.readFileSync('metrics.json',    'utf8'));
+            const metrics = JSON.parse(fs.readFileSync('metrics.json', 'utf8'));
 
-            const prob   = prediction.defect_probability;
+            const prob = prediction.defect_probability;
             const isHigh = prob >= 0.55;
-            const dot    = isHigh ? '🔴' : '🟢';
-            const level  = isHigh ? 'HIGH' : 'LOW';
-            const pct    = (prob * 100).toFixed(1);
+            const dot = isHigh ? '🔴' : '🟢';
+            const level = isHigh ? 'HIGH' : 'LOW';
+            const pct = (prob * 100).toFixed(1);
 
             const recommendation = isHigh
               ? 'Thorough code review and additional test coverage strongly recommended before merging.'
@@ -91,14 +91,15 @@ jobs:
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
-              repo:  context.repo.repo,
+              repo: context.repo.repo,
               issue_number: context.issue.number,
             });
+
             for (const c of comments) {
               if (c.user.type === 'Bot' && c.body.includes('AI Defect Prediction')) {
                 await github.rest.issues.deleteComment({
                   owner: context.repo.owner,
-                  repo:  context.repo.repo,
+                  repo: context.repo.repo,
                   comment_id: c.id,
                 });
               }
@@ -106,7 +107,7 @@ jobs:
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
-              repo:  context.repo.repo,
+              repo: context.repo.repo,
               issue_number: context.issue.number,
               body,
             });
