@@ -39,6 +39,7 @@ jobs:
           pip install huggingface_hub joblib scikit-learn numpy
 
       - name: Extract JIT metrics from PR diff
+        if: github.event_name == 'pull_request'
         run: |
           python scripts/extract_metrics.py \
             --base ${{ github.event.pull_request.base.sha }} \
@@ -46,6 +47,7 @@ jobs:
             --output metrics.json
 
       - name: Run BiLSTM defect prediction
+        if: github.event_name == 'pull_request'
         run: |
           python scripts/predict.py \
             --metrics metrics.json \
@@ -54,13 +56,20 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
       - name: Post prediction comment on PR
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const prediction = JSON.parse(fs.readFileSync('prediction.json', 'utf8'));
-            const metrics = JSON.parse(fs.readFileSync('metrics.json', 'utf8'));
+
+            const prediction = JSON.parse(
+              fs.readFileSync('prediction.json', 'utf8')
+            );
+
+            const metrics = JSON.parse(
+              fs.readFileSync('metrics.json', 'utf8')
+            );
 
             const prob = prediction.defect_probability;
             const isHigh = prob >= 0.55;
@@ -74,20 +83,20 @@ jobs:
 
             const body = `## 🤖 AI Defect Prediction — BiLSTM-MHA
 
-**Risk Level:** ${dot} **${level}** (${pct}% defect probability)
+            **Risk Level:** ${dot} **${level}** (${pct}% defect probability)
 
-| Metric | Value |
-|---|---|
-| Lines Added | ${metrics.lines_added} |
-| Lines Deleted | ${metrics.lines_deleted} |
-| Files Changed | ${metrics.files_changed} |
-| Entropy | ${metrics.entropy_label} |
-| Developer Experience | ${metrics.developer_experience} commits |
+            | Metric | Value |
+            |---|---|
+            | Lines Added | ${metrics.lines_added} |
+            | Lines Deleted | ${metrics.lines_deleted} |
+            | Files Changed | ${metrics.files_changed} |
+            | Entropy | ${metrics.entropy_label} |
+            | Developer Experience | ${metrics.developer_experience} commits |
 
-**Recommendation:** ${recommendation}
+            **Recommendation:** ${recommendation}
 
----
-*Model: [Preksha172/lstm-jit-defect-prediction](https://huggingface.co/Preksha172/lstm-jit-defect-prediction) | Trained on JIT-Defects4J (16,374 commits) | F1=38.19%*`;
+            ---
+            *Model: [Preksha172/lstm-jit-defect-prediction](https://huggingface.co/Preksha172/lstm-jit-defect-prediction) | Trained on JIT-Defects4J (16,374 commits) | F1=38.19%*`;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
@@ -96,7 +105,10 @@ jobs:
             });
 
             for (const c of comments) {
-              if (c.user.type === 'Bot' && c.body.includes('AI Defect Prediction')) {
+              if (
+                c.user.type === 'Bot' &&
+                c.body.includes('AI Defect Prediction')
+              ) {
                 await github.rest.issues.deleteComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -109,5 +121,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body,
+              body: body,
             });
