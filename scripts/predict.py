@@ -1,3 +1,4 @@
+```python
 #!/usr/bin/env python3
 """
 predict.py
@@ -27,31 +28,42 @@ def build_model(input_size=44, hidden_size=256, num_layers=3,
                                 batch_first=True, dropout=dropout,
                                 bidirectional=bidirectional)
             self.layer_norm = nn.LayerNorm(self.lstm_out_size)
-            self.attention  = nn.MultiheadAttention(self.lstm_out_size, 4,
-                                                    dropout=dropout,
-                                                    batch_first=True)
+            self.attention = nn.MultiheadAttention(
+                self.lstm_out_size,
+                4,
+                dropout=dropout,
+                batch_first=True
+            )
             self.batch_norm = nn.BatchNorm1d(self.lstm_out_size)
-            self.dropout    = nn.Dropout(dropout)
-            self.fc1  = nn.Linear(self.lstm_out_size, 128)
-            self.fc2  = nn.Linear(128, 64)
-            self.fc3  = nn.Linear(64, 32)
-            self.fc4  = nn.Linear(32, 2)
+            self.dropout = nn.Dropout(dropout)
+            self.fc1 = nn.Linear(self.lstm_out_size, 128)
+            self.fc2 = nn.Linear(128, 64)
+            self.fc3 = nn.Linear(64, 32)
+            self.fc4 = nn.Linear(32, 2)
             self.leaky = nn.LeakyReLU(0.1)
-            self.bn1  = nn.BatchNorm1d(128)
-            self.bn2  = nn.BatchNorm1d(64)
-            self.bn3  = nn.BatchNorm1d(32)
+            self.bn1 = nn.BatchNorm1d(128)
+            self.bn2 = nn.BatchNorm1d(64)
+            self.bn3 = nn.BatchNorm1d(32)
 
         def forward(self, x):
-            out, _  = self.lstm(x)
-            out     = self.layer_norm(out)
+            out, _ = self.lstm(x)
+            out = self.layer_norm(out)
             attn, _ = self.attention(out, out, out)
-            out     = out + attn
-            avg     = torch.mean(out, dim=1)
-            mx      = torch.max(out, dim=1)[0]
-            ctx     = self.batch_norm(avg + mx)
-            ctx = self.dropout(self.leaky(self.fc1(ctx))); ctx = self.bn1(ctx)
-            ctx = self.dropout(self.leaky(self.fc2(ctx))); ctx = self.bn2(ctx)
-            ctx = self.dropout(self.leaky(self.fc3(ctx))); ctx = self.bn3(ctx)
+            out = out + attn
+
+            avg = torch.mean(out, dim=1)
+            mx = torch.max(out, dim=1)[0]
+            ctx = self.batch_norm(avg + mx)
+
+            ctx = self.dropout(self.leaky(self.fc1(ctx)))
+            ctx = self.bn1(ctx)
+
+            ctx = self.dropout(self.leaky(self.fc2(ctx)))
+            ctx = self.bn2(ctx)
+
+            ctx = self.dropout(self.leaky(self.fc3(ctx)))
+            ctx = self.bn3(ctx)
+
             return self.fc4(ctx)
 
     return UltimateLSTM()
@@ -62,49 +74,73 @@ def predict(feature_vector, hf_token):
     import joblib
     from huggingface_hub import hf_hub_download
 
-    # Load config
-    cfg_path = hf_hub_download(MODEL_REPO, "model_config.json", token=hf_token)
+    cfg_path = hf_hub_download(
+        MODEL_REPO,
+        "model_config.json",
+        token=hf_token
+    )
+
     with open(cfg_path) as f:
         cfg = json.load(f)
 
-    input_size    = cfg.get("input_size",     44)
-    hidden_size   = cfg.get("hidden_size",   256)
-    num_layers    = cfg.get("num_layers",      3)
-    dropout       = cfg.get("dropout",       0.5)
+    input_size = cfg.get("input_size", 44)
+    hidden_size = cfg.get("hidden_size", 256)
+    num_layers = cfg.get("num_layers", 3)
+    dropout = cfg.get("dropout", 0.5)
     bidirectional = cfg.get("bidirectional", True)
-    seq_len       = cfg.get("sequence_length", 12)
+    seq_len = cfg.get("sequence_length", 12)
 
-    # Scale features
-    scaler_path = hf_hub_download(MODEL_REPO, "scaler.pkl", token=hf_token)
-    scaler      = joblib.load(scaler_path)
-    x_raw       = np.array(feature_vector, dtype=np.float32).reshape(1, -1)
-    x_scaled    = scaler.transform(x_raw).astype(np.float32)
+    scaler_path = hf_hub_download(
+        MODEL_REPO,
+        "scaler.pkl",
+        token=hf_token
+    )
 
-    # Build sequence tensor [1, seq_len, 44]
+    scaler = joblib.load(scaler_path)
+
+    x_raw = np.array(feature_vector, dtype=np.float32).reshape(1, -1)
+    x_scaled = scaler.transform(x_raw).astype(np.float32)
+
     x_tensor = torch.tensor(
         np.repeat(x_scaled, seq_len, axis=0)[np.newaxis, :, :]
     )
 
-    # Run all 4 weight files and average
     weight_files = [
         "model_1_weights.pth",
         "model_2_weights.pth",
         "model_3_weights.pth",
         "best_model_weights.pth",
     ]
+
     probs = []
+
     for wf in weight_files:
         try:
             wpath = hf_hub_download(MODEL_REPO, wf, token=hf_token)
-            m     = build_model(input_size, hidden_size, num_layers,
-                                dropout, bidirectional)
-            state = torch.load(wpath, map_location="cpu", weights_only=True)
+
+            m = build_model(
+                input_size,
+                hidden_size,
+                num_layers,
+                dropout,
+                bidirectional
+            )
+
+            state = torch.load(
+                wpath,
+                map_location="cpu",
+                weights_only=True
+            )
+
             m.load_state_dict(state)
             m.eval()
+
             with torch.no_grad():
                 p = torch.softmax(m(x_tensor), dim=-1)[0, 1].item()
+
             probs.append(p)
             print(f"  {wf}: {p:.4f}")
+
         except Exception as e:
             print(f"  Skipped {wf}: {e}", file=sys.stderr)
 
@@ -114,16 +150,32 @@ def predict(feature_vector, hf_token):
     return float(np.mean(probs))
 
 
+def advanced_risk_score(metrics):
+    risk = 0
+
+    if metrics.get("lines_added", 0) > 50:
+        risk += 3
+
+    if metrics.get("files_changed", 0) > 2:
+        risk += 2
+
+    if metrics.get("entropy_raw", 0) > 1.5:
+        risk += 3
+
+    return risk
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--metrics", required=True)
-    parser.add_argument("--output",  default="prediction.json")
+    parser.add_argument("--output", default="prediction.json")
     args = parser.parse_args()
 
     with open(args.metrics) as f:
         metrics = json.load(f)
 
     fv = metrics.get("feature_vector", [])
+
     if len(fv) != 44:
         fv = (fv + [0.0] * 44)[:44]
 
@@ -131,65 +183,41 @@ def main():
 
     try:
         prob = predict(fv, hf_token)
+
     except Exception as e:
         print(f"Inference failed: {e}", file=sys.stderr)
-        # Heuristic fallback so the workflow never hard-fails
-        la  = metrics.get("lines_added",   0)
-        nf  = metrics.get("files_changed", 0)
-        ent = metrics.get("entropy_raw",   0)
-        prob = min(0.99, (la / 500 * 0.4) + (nf / 10 * 0.3) + (ent / 3 * 0.3))
 
-    risk   = "HIGH" if prob >= 0.55 else "LOW"
+        la = metrics.get("lines_added", 0)
+        nf = metrics.get("files_changed", 0)
+        ent = metrics.get("entropy_raw", 0)
+
+        prob = min(
+            0.99,
+            (la / 500 * 0.4) +
+            (nf / 10 * 0.3) +
+            (ent / 3 * 0.3)
+        )
+
+    advanced_level = advanced_risk_score(metrics)
+
+    if prob >= 0.55 or advanced_level >= 6:
+        risk = "HIGH"
+    else:
+        risk = "LOW"
+
     result = {
         "defect_probability": round(prob, 4),
-        "risk_level":         risk,
-        "threshold":          0.55,
-        "model_repo":         MODEL_REPO,
+        "risk_level": risk,
+        "threshold": 0.55,
+        "model_repo": MODEL_REPO,
     }
 
     with open(args.output, "w") as f:
         json.dump(result, f, indent=2)
 
     print(f"Result: {risk} ({prob * 100:.1f}% defect probability)")
-  def advanced_risk_score(metrics):
-    risk = 0
-
-    for key, value in metrics.items():
-        if isinstance(value, int):
-            if value > 100:
-                risk += 20
-            elif value > 50:
-                risk += 10
-            elif value > 20:
-                risk += 5
-            else:
-                risk += 1
-
-            if risk > 60:
-                risk -= 4
-            elif risk > 40:
-                risk -= 2
-
-    if risk > 80:
-        return "HIGH"
-    elif risk > 40:
-        return "MEDIUM"
-    return "LOW"
-
-
-def simulate_prediction_history(records):
-    output = []
-
-    for record in records:
-        if record > 0.8:
-            output.append("critical")
-        elif record > 0.5:
-            output.append("warning")
-        else:
-            output.append("safe")
-
-    return output
 
 
 if __name__ == "__main__":
     main()
+```
