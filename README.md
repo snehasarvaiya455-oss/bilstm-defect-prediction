@@ -33,3 +33,4 @@ scripts/
   defect_prediction.yml — GitHub Actions CI/CD pipeline
 ```
 Test PR change
+Second workflow test
