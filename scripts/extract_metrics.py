@@ -1,4 +1,3 @@
-```python
 #!/usr/bin/env python3
 """
 extract_metrics.py
@@ -215,4 +214,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
