@@ -31,5 +31,25 @@ scripts/
   predict.py         — runs BiLSTM inference
 .github/workflows/
   defect_prediction.yml — GitHub Actions CI/CD pipeline
+
+
 ```
-Test PR change
+## Additional Workflow Testing
+
+This section is added for workflow testing and risk score evaluation.
+
+- Added multiple utility functions
+- Increased code complexity
+- Added additional conditions and loops
+- Increased total number of lines modified
+- Increased number of files changed
+- Added temporary testing blocks
+- Added experimental risk scoring methods
+- Added change classification methods
+- Added prediction history simulation
+- Added workflow trigger comments
+- Added larger PR diff for testing
+- Increased entropy for testing purposes
+- Added multiple branches and conditions
+- Added new helper methods
+- Added placeholder evaluation logic
