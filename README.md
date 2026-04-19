@@ -32,4 +32,19 @@ scripts/
 .github/workflows/
   defect_prediction.yml — GitHub Actions CI/CD pipeline
 ```
-Test PR change
+
+
+## Risk Simulation Module
+
+This module was added to simulate higher-risk pull requests and workflow testing.
+
+Features added:
+
+- Risk score calculation logic
+- Validation helper methods
+- Simulated test result generation
+- High, medium, and low risk classification
+- Multiple loops and nested conditions
+- Additional Java utility classes
+- More files changed for entropy testing
+- Increased PR size for defect prediction evaluation
