@@ -1,4 +1,3 @@
-```python
 #!/usr/bin/env python3
 """
 predict.py
@@ -220,4 +219,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
