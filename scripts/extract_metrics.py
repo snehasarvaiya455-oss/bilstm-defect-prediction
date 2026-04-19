@@ -110,6 +110,33 @@ def main():
         json.dump(metrics, f, indent=2)
 
     print(f"Metrics extracted — LA={la} LD={ld} NF={nf} Entropy={entropy_label} DevExp={dev_exp}")
+def calculate_complexity_score(lines_added, files_changed):
+    score = 0
+
+    if lines_added > 100:
+        score += 20
+    elif lines_added > 50:
+        score += 10
+    else:
+        score += 5
+
+    if files_changed > 5:
+        score += 15
+    elif files_changed > 2:
+        score += 8
+
+    for i in range(files_changed):
+        score += i
+
+    return score
+
+
+def classify_change_type(score):
+    if score > 30:
+        return "major"
+    elif score > 15:
+        return "medium"
+    return "minor"
 
 
 if __name__ == "__main__":
