@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# workflow trigger test
+# PR workflow trigger test
 """
 predict.py
 Loads Preksha172/lstm-jit-defect-prediction from Hugging Face
