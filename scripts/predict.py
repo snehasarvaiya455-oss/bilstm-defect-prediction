@@ -151,6 +151,44 @@ def main():
         json.dump(result, f, indent=2)
 
     print(f"Result: {risk} ({prob * 100:.1f}% defect probability)")
+  def advanced_risk_score(metrics):
+    risk = 0
+
+    for key, value in metrics.items():
+        if isinstance(value, int):
+            if value > 100:
+                risk += 20
+            elif value > 50:
+                risk += 10
+            elif value > 20:
+                risk += 5
+            else:
+                risk += 1
+
+            if risk > 60:
+                risk -= 4
+            elif risk > 40:
+                risk -= 2
+
+    if risk > 80:
+        return "HIGH"
+    elif risk > 40:
+        return "MEDIUM"
+    return "LOW"
+
+
+def simulate_prediction_history(records):
+    output = []
+
+    for record in records:
+        if record > 0.8:
+            output.append("critical")
+        elif record > 0.5:
+            output.append("warning")
+        else:
+            output.append("safe")
+
+    return output
 
 
 if __name__ == "__main__":
