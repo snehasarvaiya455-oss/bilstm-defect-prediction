@@ -154,5 +154,39 @@ def main():
     print(f"Result: {risk} ({prob * 100:.1f}% defect probability)")
 
 
+# temporary PR risk test block
+def complex_test_logic_a(x):
+    result = 0
+    for i in range(x):
+        if i % 2 == 0:
+            result += i * 3
+        else:
+            result -= i * 2
+
+        if result > 50:
+            result = result // 2
+        elif result < -20:
+            result = result + 5
+
+    return result
+
+
+def complex_test_logic_b(data):
+    output = []
+
+    for item in data:
+        if isinstance(item, int):
+            if item > 100:
+                output.append(item * 2)
+            elif item > 50:
+                output.append(item + 10)
+            else:
+                output.append(item - 5)
+        else:
+            output.append(0)
+
+    return output
+
+
 if __name__ == "__main__":
     main()
